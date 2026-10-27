@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="es" class="dark scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MADRID ESCAPE ROOMS | Central de Misterio & Inmersión</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Cinzel Decorative, Orbitron, Rajdhani, Montserrat -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Montserrat:wght@300;400;500;600;700&family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Three.js for Fog & Particle FX -->
+  
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        mystery: {
+                            black: '#040508',
+                            darker: '#090b10',
+                            dark: '#10141e',
+                            card: 'rgba(16, 20, 30, 0.75)',
+                            gold: '#d4af37',
+                            goldLight: '#f3e5ab',
+                            crimson: '#8b0000',
+                            blood: '#e63946',
+                            cyan: '#00f3ff',
+                            purple: '#9d4edd',
+                        }
+                    },
+                    fontFamily: {
+                        cinzel: ['Cinzel Decorative', 'serif'],
+                        montserrat: ['Montserrat', 'sans-serif'],
+                        orbitron: ['Orbitron', 'sans-serif'],
+                        rajdhani: ['Rajdhani', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-glow': 'pulseGlow 3s infinite alternate',
+                        'fog-float': 'fogFloat 20s ease-in-out infinite alternate',
+                        'flicker': 'flicker 4s infinite',
+                    },
+                    keyframes: {
+                        pulseGlow: {
+                            '0%': { boxShadow: '0 0 15px rgba(212, 175, 55, 0.2)' },
+                            '100%': { boxShadow: '0 0 30px rgba(212, 175, 55, 0.6), 0 0 50px rgba(139, 0, 0, 0.4)' }
+                        },
+                        flicker: {
+                            '0%, 100%': { opacity: 1 },
+                            '41%': { opacity: 1 },
+                            '42%': { opacity: 0.3 },
+                            '43%': { opacity: 0.8 },
+                            '45%': { opacity: 0.2 },
+                            '46%': { opacity: 1 },
+                            '80%': { opacity: 0.9 },
+                            '81%': { opacity: 0.4 },
+                            '82%': { opacity: 1 },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #040508;
+            color: #d1d5db;
+            font-family: 'Montserrat', sans-serif;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, .font-cinzel {
+            font-family: 'Cinzel Decorative', serif;
+        }
+
+        /* Glassmorphism Cards with Mystery Borders */
+        .mystery-card {
+            background: rgba(16, 20, 30, 0.82);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .mystery-card:hover {
+            border-color: rgba(212, 175, 55, 0.8);
+            box-shadow: 0 10px 35px -10px rgba(212, 175, 55, 0.3), 0 0 20px rgba(139, 0, 0, 0.2);
+            transform: translateY(-4px);
+        }
+
+        .glow-gold {
+            text-shadow: 0 0 10px rgba(212, 175, 55, 0.6), 0 0 20px rgba(212, 175, 55, 0.3);
+        }
+
+        .glow-crimson {
+            text-shadow: 0 0 10px rgba(230, 57, 70, 0.8), 0 0 20px rgba(139, 0, 0, 0.5);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #040508;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #10141e;
+            border: 1px solid #d4af37;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #d4af37;
+        }
+
+        /* Accent Gradients */
+        .bg-gold-gradient {
+            background: linear-gradient(135deg, #d4af37 0%, #aa7c11 100%);
+        }
+
+        .bg-crimson-gradient {
+            background: linear-gradient(135deg, #e63946 0%, #8b0000 100%);
+        }
+
+        /* Puzzle lock dial rotation */
+        .dial-ring {
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+    </style>
+</head>
+<body class="relative min-h-screen selection:bg-mystery-gold selection:text-black">
+
+    <!-- Background WebGL Canvas (Fog & Dust Particles) -->
+    <canvas id="bg-fog-canvas" class="fixed inset-0 w-full h-full pointer-events-none z-0 opacity-70"></canvas>
+
+    <!-- AUDIO AMBIENTAL: coloca tu archivo MP3 en la carpeta audio -->
+    <audio id="audio-ambiente" loop preload="none">
+        <source src="./audio/mysterious-suspense.mp3" type="audio/mpeg">
+        Tu navegador no admite la reproducción de audio.
+    </audio>
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="fixed top-0 left-0 w-full z-50 bg-mystery-black/90 backdrop-blur-md border-b border-mystery-gold/20 px-4 lg:px-8 py-3 transition-all duration-300">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            
+            <!-- Brand Logo -->
+            <a href="#" class="flex items-center gap-3 group">
+                <div class="w-10 h-10 rounded-lg bg-mystery-dark border border-mystery-gold flex items-center justify-center text-mystery-gold group-hover:shadow-[0_0_15px_#d4af37] transition-all duration-300">
+                    <i class="fa-solid fa-key text-lg animate-flicker"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="font-cinzel font-bold text-lg md:text-xl tracking-wider text-white group-hover:text-mystery-gold transition-colors">
+                        MADRID <span class="text-mystery-gold">ENIGMAS</span>
+                    </span>
+                    <span class="text-[9px] tracking-widest text-gray-400 font-mono uppercase -mt-1">Red Oficial de Escape Rooms</span>
+                </div>
+            </a>
+
+            <!-- Desktop Menu -->
+            <nav class="hidden lg:flex items-center space-x-7 font-montserrat text-xs tracking-widest uppercase font-semibold text-gray-300">
+                <a href="#teaser" class="hover:text-mystery-gold transition-colors flex items-center gap-1.5"><i class="fa-solid fa-puzzle-piece text-mystery-gold"></i> Desafío Pista</a>
+                <a href="#salas" class="hover:text-mystery-gold transition-colors flex items-center gap-1.5"><i class="fa-solid fa-door-closed text-mystery-gold"></i> Las 8 Salas</a>
+                <a href="#reservas" class="hover:text-mystery-gold transition-colors flex items-center gap-1.5"><i class="fa-solid fa-calendar-days text-mystery-blood"></i> Reservar Entradas</a>
+                <a href="#mapa" class="hover:text-mystery-gold transition-colors flex items-center gap-1.5"><i class="fa-solid fa-map-location-dot text-mystery-gold"></i> Ubicaciones</a>
+                <a href="#faq" class="hover:text-mystery-gold transition-colors flex items-center gap-1.5"><i class="fa-solid fa-circle-question text-gray-400"></i> FAQ</a>
+            </nav>
+
+            <!-- Audio Control & CTA -->
+            <div class="flex items-center gap-3">
+                <!-- Audio Ambient Synthesizer Toggle -->
+                <button id="audio-toggle-btn" class="px-3 py-2 rounded-lg bg-mystery-dark border border-mystery-gold/40 text-mystery-gold hover:border-mystery-gold text-xs font-mono flex items-center gap-2 transition-all">
+                    <i id="audio-icon" class="fa-solid fa-volume-xmark"></i>
+                    <span id="audio-label" class="hidden sm:inline">Audio Suspenso</span>
+                </button>
+
+                <a href="#reservas" class="hidden sm:inline-flex items-center justify-center px-4 py-2 font-cinzel text-xs font-bold uppercase tracking-wider text-black bg-gold-gradient rounded shadow-[0_0_15px_rgba(212,175,55,0.4)] hover:shadow-[0_0_25px_rgba(212,175,55,0.8)] transition-all transform hover:-translate-y-0.5">
+                    <i class="fa-solid fa-ticket mr-1.5"></i> Reservar
+                </a>
+
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-btn" class="lg:hidden text-mystery-gold p-2 focus:outline-none" aria-label="Abrir Menú">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Dropdown -->
+        <div id="mobile-menu" class="hidden lg:hidden mt-3 pt-3 border-t border-mystery-gold/20 flex flex-col space-y-3 font-semibold text-xs tracking-wider pb-3">
+            <a href="#teaser" class="mobile-link text-gray-300 hover:text-mystery-gold px-2 py-1.5 flex items-center gap-2">
+                <i class="fa-solid fa-puzzle-piece text-mystery-gold"></i> Desafío "Desencripta la Pista"
+            </a>
+            <a href="#salas" class="mobile-link text-gray-300 hover:text-mystery-gold px-2 py-1.5 flex items-center gap-2">
+                <i class="fa-solid fa-door-closed text-mystery-gold"></i> Catálogo Completo de Salas (Madrid)
+            </a>
+            <a href="#reservas" class="mobile-link text-gray-300 hover:text-mystery-gold px-2 py-1.5 flex items-center gap-2">
+                <i class="fa-solid fa-calendar-days text-mystery-blood"></i> Motor de Reservas & Precios
+            </a>
+            <a href="#mapa" class="mobile-link text-gray-300 hover:text-mystery-gold px-2 py-1.5 flex items-center gap-2">
+                <i class="fa-solid fa-map-location-dot text-mystery-gold"></i> Direcciones y Mapa Madrid
+            </a>
+            <a href="#faq" class="mobile-link text-gray-300 hover:text-mystery-gold px-2 py-1.5 flex items-center gap-2">
+                <i class="fa-solid fa-circle-question text-gray-400"></i> Preguntas Frecuentes
+            </a>
+        </div>
+    </header>
+
+    <main class="relative z-10 pt-20">
+
+        <!-- HERO SECTION -->
+        <section class="relative min-h-[85vh] flex items-center justify-center px-4 py-16 text-center">
+            <div class="max-w-4xl mx-auto space-y-6">
+                
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mystery-card text-mystery-gold text-xs font-mono tracking-widest uppercase animate-pulse-glow">
+                    <i class="fa-solid fa-compass animate-spin text-mystery-gold"></i>
+                    <span>Madrid, Capital del Misterio & Escape Rooms</span>
+                </div>
+
+                <h1 class="text-3xl sm:text-5xl md:text-6xl font-black uppercase tracking-tight text-white font-cinzel leading-tight">
+                    ¿Serás Capaz de <span class="text-transparent bg-clip-text bg-gradient-to-r from-mystery-gold via-yellow-200 to-mystery-gold glow-gold">Escapar?</span>
+                </h1>
+
+                <p class="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto font-montserrat font-light leading-relaxed">
+                    Accede a la red unificada con las <strong class="text-mystery-gold font-medium">8 salas de escape más aclamadas de Madrid</strong>. Desde investigaciones de detectives victorianos en <a href="https://www.google.com/maps/search/?api=1&query=Clue+Hunter+Madrid+-+Escape+Room&query_place_id=ChIJTXrLptUnQg0RG2UHmT24bIc" target="_blank" rel="noopener noreferrer" class="underline hover:text-mystery-gold">Clue Hunter</a> hasta tecnología háptica, magias oscuras y terror psicológico.
+                </p>
+
+                <!-- Action CTA Cluster -->
+                <div class="flex flex-col sm:flex-row justify-center items-center gap-4 pt-4">
+                    <a href="#reservas" class="w-full sm:w-auto px-8 py-4 font-cinzel font-bold text-xs uppercase tracking-wider text-black bg-gold-gradient hover:brightness-110 rounded-lg shadow-[0_0_20px_rgba(212,175,55,0.5)] transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-unlock-keyhole"></i> Reservar Misión Ahora
+                    </a>
+                    <a href="#teaser" class="w-full sm:w-auto px-8 py-4 font-cinzel font-bold text-xs uppercase tracking-wider text-white mystery-card hover:border-mystery-gold rounded-lg transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass"></i> Probar Acertijo Previo
+                    </a>
+                </div>
+
+                <!-- Stats counter bar -->
+                <div class="pt-12 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto text-left">
+                    <div class="p-3 rounded-lg mystery-card border border-mystery-gold/20">
+                        <span class="text-2xl font-cinzel font-bold text-mystery-gold block">8 SALAS</span>
+                        <span class="text-[10px] uppercase font-mono text-gray-400">Centros Top Madrid</span>
+                    </div>
+                    <div class="p-3 rounded-lg mystery-card border border-mystery-gold/20">
+                        <span class="text-2xl font-cinzel font-bold text-mystery-gold block">+35 CASOS</span>
+                        <span class="text-[10px] uppercase font-mono text-gray-400">Aventuras Disponibles</span>
+                    </div>
+                    <div class="p-3 rounded-lg mystery-card border border-mystery-gold/20">
+                        <span class="text-2xl font-cinzel font-bold text-mystery-blood block">60-90 MIN</span>
+                        <span class="text-[10px] uppercase font-mono text-gray-400">Duración por Misión</span>
+                    </div>
+                    <div class="p-3 rounded-lg mystery-card border border-mystery-gold/20">
+                        <span class="text-2xl font-cinzel font-bold text-mystery-gold block">4.9 / 5</span>
+                        <span class="text-[10px] uppercase font-mono text-gray-400">+12,000 Reseñas</span>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- SECCIÓN TEASER INTERACTIVO: PUZZLE DESENCRIPTA LA PISTA -->
+        <section id="teaser" class="py-16 px-4 max-w-5xl mx-auto relative z-20">
+            <div class="mystery-card rounded-2xl p-6 md:p-10 border border-mystery-gold/40 relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-40 h-40 bg-mystery-gold/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="text-center space-y-3 mb-8">
+                    <span class="text-mystery-gold font-mono text-xs tracking-widest uppercase">// Interactivo: Prueba Tu Ingenio</span>
+                    <h2 class="text-2xl md:text-4xl font-bold font-cinzel text-white">
+                        Desencripta la <span class="text-mystery-gold">Pista Oculta</span>
+                    </h2>
+                    <p class="text-sm text-gray-300 max-w-xl mx-auto">
+                        Inspecciona los 3 discos de combinación antiguos. Gíralos hasta alinear el código secreto del detective (Sugerencia: "1 - 8 - 4").
+                    </p>
+                </div>
+
+                <!-- Interactive Dial Lock Interface -->
+                <div class="flex flex-col items-center justify-center space-y-6">
+                    <div class="flex items-center justify-center gap-4 sm:gap-8 bg-mystery-black/80 p-6 rounded-2xl border border-mystery-gold/30 shadow-inner">
+                        
+                        <!-- Dial 1 -->
+                        <div class="flex flex-col items-center space-y-2">
+                            <button id="dial-1-up" class="w-8 h-8 rounded bg-mystery-dark border border-mystery-gold/50 text-mystery-gold hover:bg-mystery-gold hover:text-black transition-colors">
+                                <i class="fa-solid fa-chevron-up"></i>
+                            </button>
+                            <div id="dial-1" class="dial-ring w-16 h-16 rounded-full bg-gradient-to-b from-mystery-dark to-mystery-black border-2 border-mystery-gold flex items-center justify-center text-2xl font-orbitron font-bold text-white shadow-md">
+                                0
+                            </div>
+                            <button id="dial-1-down" class="w-8 h-8 rounded bg-mystery-dark border border-mystery-gold/50 text-mystery-gold hover:bg-mystery-gold hover:text-black transition-colors">
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </button>
+                        </div>
+
+                        <span class="text-2xl font-cinzel text-mystery-gold">-</span>
+
+                        <!-- Dial 2 -->
+                        <div class="flex flex-col items-center space-y-2">
+                            <button id="dial-2-up" class="w-8 h-8 rounded bg-mystery-dark border border-mystery-gold/50 text-mystery-gold hover:bg-mystery-gold hover:text-black transition-colors">
+                                <i class="fa-solid fa-chevron-up"></i>
+                            </button>
+                            <div id="dial-2" class="dial-ring w-16 h-16 rounded-full bg-gradient-to-b from-mystery-dark to-mystery-black border-2 border-mystery-gold flex items-center justify-center text-2xl font-orbitron font-bold text-white shadow-md">
+                                0
+                            </div>
+                            <button id="dial-2-down" class="w-8 h-8 rounded bg-mystery-dark border border-mystery-gold/50 text-mystery-gold hover:bg-mystery-gold hover:text-black transition-colors">
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </button>
+                        </div>
+
+                        <span class="text-2xl font-cinzel text-mystery-gold">-</span>
+
+                        <!-- Dial 3 -->
+                        <div class="flex flex-col items-center space-y-2">
+                            <button id="dial-3-up" class="w-8 h-8 rounded bg-mystery-dark border border-mystery-gold/50 text-mystery-gold hover:bg-mystery-gold hover:text-black transition-colors">
+                                <i class="fa-solid fa-chevron-up"></i>
+                            </button>
+                            <div id="dial-3" class="dial-ring w-16 h-16 rounded-full bg-gradient-to-b from-mystery-dark to-mystery-black border-2 border-mystery-gold flex items-center justify-center text-2xl font-orbitron font-bold text-white shadow-md">
+                                0
+                            </div>
+                            <button id="dial-3-down" class="w-8 h-8 rounded bg-mystery-dark border border-mystery-gold/50 text-mystery-gold hover:bg-mystery-gold hover:text-black transition-colors">
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <!-- Puzzle Status Feedback -->
+                    <div id="puzzle-feedback" class="text-center font-mono text-xs px-4 py-2 rounded-lg bg-mystery-dark/80 border border-gray-800 text-gray-400 max-w-md w-full">
+                        <i class="fa-solid fa-lock text-mystery-gold mr-2"></i> Cerradura Bloqueada. Alinea la combinación correcta.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN RECOPILATORIA: LAS 8 SALAS DE MADRID -->
+        <section id="salas" class="py-16 px-4 max-w-7xl mx-auto relative z-20">
+            <div class="text-center space-y-4 mb-12">
+                <span class="text-mystery-gold font-mono text-xs tracking-widest uppercase">// Catálogo Oficial Completo</span>
+                <h2 class="text-3xl md:text-5xl font-extrabold uppercase text-white font-cinzel">
+                    Las 8 Salas de <span class="text-mystery-gold glow-gold">Madrid</span>
+                </h2>
+                <p class="text-sm text-gray-300 max-w-2xl mx-auto">
+                    Filtra por ambiente o explora las experiencias detalladas de cada uno de los centros seleccionados.
+                </p>
+
+                <!-- Filter Pills -->
+                <div class="flex flex-wrap justify-center gap-2 pt-4">
+                    <button class="room-filter-btn active px-4 py-2 rounded-full border border-mystery-gold bg-mystery-gold/20 text-mystery-gold text-xs font-mono uppercase font-bold transition-all" data-filter="all">
+                        Todas (8)
+                    </button>
+                    <button class="room-filter-btn px-4 py-2 rounded-full border border-gray-800 bg-mystery-dark text-gray-400 hover:border-mystery-gold text-xs font-mono uppercase transition-all" data-filter="misterio">
+                        Misterio & Detectives
+                    </button>
+                    <button class="room-filter-btn px-4 py-2 rounded-full border border-gray-800 bg-mystery-dark text-gray-400 hover:border-mystery-blood text-xs font-mono uppercase transition-all" data-filter="terror">
+                        Terror & Tensión
+                    </button>
+                    <button class="room-filter-btn px-4 py-2 rounded-full border border-gray-800 bg-mystery-dark text-gray-400 hover:border-mystery-purple text-xs font-mono uppercase transition-all" data-filter="magia">
+                        Magia & Fantasía
+                    </button>
+                    <button class="room-filter-btn px-4 py-2 rounded-full border border-gray-800 bg-mystery-dark text-gray-400 hover:border-mystery-cyan text-xs font-mono uppercase transition-all" data-filter="scifi">
+                        Inmersión VR & Sci-Fi
+                    </button>
+                </div>
+            </div>
+
+            <!-- Grid Container for 8 Escape Rooms -->
+            <div id="rooms-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+                <!-- 1. Clue Hunter Madrid -->
+                <div class="room-item mystery-card rounded-xl overflow-hidden flex flex-col justify-between cursor-pointer group" data-category="misterio" data-room-id="1">
+                    <div>
+                        <div class="relative h-48 overflow-hidden bg-mystery-dark">
+                            <img src="./img/images.jpg" alt="Clue Hunter Madrid" class="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/600x400/10141e/d4af37?text=Clue+Hunter+Madrid'">
+                            <span class="absolute top-3 left-3 bg-mystery-gold text-black font-mono font-bold text-[10px] px-2.5 py-1 rounded uppercase">Misterio Clásico</span>
+                            <span class="absolute bottom-3 right-3 bg-mystery-black/80 border border-mystery-gold/30 text-mystery-gold text-xs font-mono px-2 py-0.5 rounded">
+                                <i class="fa-solid fa-location-dot mr-1"></i> Juanelo, Centro
+                            </span>
+                        </div>
+                        <div class="p-5 space-y-3">
+                            <h3 class="text-lg font-bold font-cinzel text-white group-hover:text-mystery-gold transition-colors">1. Clue Hunter Madrid</h3>
+                            <p class="text-xs text-gray-300 leading-relaxed">
+                                Referente emblemático del centro. Casos de investigación deductiva, secretos victorianos y enigmas de lógica pura.
+                            </p>
+                            <div class="flex flex-wrap gap-2 text-[11px] font-mono text-gray-400 pt-1">
+                                <span><i class="fa-solid fa-users text-mystery-gold mr-1"></i> 2-6 pax</span>
+                                <span><i class="fa-solid fa-clock text-mystery-gold mr-1"></i> 60 min</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-5 pt-0">
+                        <button class="w-full py-2.5 rounded bg-mystery-dark border border-mystery-gold/40 group-hover:bg-mystery-gold group-hover:text-black text-mystery-gold font-mono text-xs uppercase font-bold transition-all flex items-center justify-center gap-2">
+                            <span>Ver Página de la Sala</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. Coco Room Madrid -->
+                <div class="room-item mystery-card rounded-xl overflow-hidden flex flex-col justify-between cursor-pointer group" data-category="misterio" data-room-id="2">
+                    <div>
+                        <div class="relative h-48 overflow-hidden bg-mystery-dark">
+                            <img src="./img/images1.jpeg" alt="Coco Room Madrid" class="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/600x400/10141e/d4af37?text=Coco+Room'">
+                            <span class="absolute top-3 left-3 bg-mystery-gold text-black font-mono font-bold text-[10px] px-2.5 py-1 rounded uppercase">Histórico / Enigmas</span>
+                            <span class="absolute bottom-3 right-3 bg-mystery-black/80 border border-mystery-gold/30 text-mystery-gold text-xs font-mono px-2 py-0.5 rounded">
+                                <i class="fa-solid fa-location-dot mr-1"></i> Arganzuela
+                            </span>
+                        </div>
+                        <div class="p-5 space-y-3">
+                            <h3 class="text-lg font-bold font-cinzel text-white group-hover:text-mystery-gold transition-colors">2. Coco Room Madrid</h3>
+                            <p class="text-xs text-gray-300 leading-relaxed">
+                                Aventuras de ingenio histórico, robos de guante blanco y misiones de rescate con puestas en escena inmersivas.
+                            </p>
+                            <div class="flex flex-wrap gap-2 text-[11px] font-mono text-gray-400 pt-1">
+                                <span><i class="fa-solid fa-users text-mystery-gold mr-1"></i> 2-8 pax</span>
+                                <span><i class="fa-solid fa-clock text-mystery-gold mr-1"></i> 66 min</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-5 pt-0">
+                        <button class="w-full py-2.5 rounded bg-mystery-dark border border-mystery-gold/40 group-hover:bg-mystery-gold group-hover:text-black text-mystery-gold font-mono text-xs uppercase font-bold transition-all flex items-center justify-center gap-2">
+                            <span>Ver Página de la Sala</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. Academia de Magia by Experiencity -->
+                <div class="room-item mystery-card rounded-xl overflow-hidden flex flex-col justify-between cursor-pointer group" data-category="magia" data-room-id="3">
+                    <div>
+                        <div class="relative h-48 overflow-hidden bg-mystery-dark">
+                            <img src="https://images.unsplash.com/photo-1514539079130-25950c84af65?auto=format&fit=crop&w=600&q=80" alt="Academia de Magia" class="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/600x400/10141e/9d4edd?text=Academia+de+Magia'">
+                            <span class="absolute top-3 left-3 bg-mystery-purple text-white font-mono font-bold text-[10px] px-2.5 py-1 rounded uppercase">Fantasía & Ilusionismo</span>
+                            <span class="absolute bottom-3 right-3 bg-mystery-black/80 border border-mystery-purple/30 text-mystery-purple text-xs font-mono px-2 py-0.5 rounded">
+                                <i class="fa-solid fa-location-dot mr-1"></i> Prosperidad
+                            </span>
+                        </div>
+                        <div class="p-5 space-y-3">
+                            <h3 class="text-lg font-bold font-cinzel text-white group-hover:text-mystery-purple transition-colors">3. Academia de Magia</h3>
+                            <p class="text-xs text-gray-300 leading-relaxed">
+                                Creado por Experiencity. Un universo de pociones, varitas reactivas y hechizos interactivos para todas las edades.
+                            </p>
+                            <div class="flex flex-wrap gap-2 text-[11px] font-mono text-gray-400 pt-1">
+                                <span><i class="fa-solid fa-users text-mystery-purple mr-1"></i> 2-7 pax</span>
+                                <span><i class="fa-solid fa-clock text-mystery-purple mr-1"></i> 75 min</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-5 pt-0">
+                        <button class="w-full py-2.5 rounded bg-mystery-dark border border-mystery-purple/40 group-hover:bg-mystery-purple group-hover:text-white text-mystery-purple font-mono text-xs uppercase font-bold transition-all flex items-center justify-center gap-2">
+                            <span>Ver Página de la Sala</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4. Fox in a Box Madrid -->
+                <div class="room-item mystery-card rounded-xl overflow-hidden flex flex-col justify-between cursor-pointer group" data-category="terror" data-room-id="4">
+                    <div>
+                        <div class="relative h-48 overflow-hidden bg-mystery-dark">
+                            <img src="./img/images4.jpg" alt="Fox in a Box" class="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/600x400/10141e/e63946?text=Fox+in+a+Box'">
+                            <span class="absolute top-3 left-3 bg-mystery-blood text-white font-mono font-bold text-[10px] px-2.5 py-1 rounded uppercase">Hiperrealismo & Tensión</span>
+                            <span class="absolute bottom-3 right-3 bg-mystery-black/80 border border-mystery-blood/30 text-mystery-blood text-xs font-mono px-2 py-0.5 rounded">
+                                <i class="fa-solid fa-location-dot mr-1"></i> Áncora
+                            </span>
+                        </div>
+                        <div class="p-5 space-y-3">
+                            <h3 class="text-lg font-bold font-cinzel text-white group-hover:text-mystery-blood transition-colors">4. Fox in a Box</h3>
+                            <p class="text-xs text-gray-300 leading-relaxed">
+                                Decorados de película: Búnker nuclear, Prisión militar y el Asesino del Zodiaco. Inmersión de máxima adrenalina.
+                            </p>
+                            <div class="flex flex-wrap gap-2 text-[11px] font-mono text-gray-400 pt-1">
+                                <span><i class="fa-solid fa-users text-mystery-blood mr-1"></i> 2-6 pax</span>
+                                <span><i class="fa-solid fa-clock text-mystery-blood mr-1"></i> 60 min</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-5 pt-0">
+                        <button class="w-full py-2.5 rounded bg-mystery-dark border border-mystery-blood/40 group-hover:bg-mystery-blood group-hover:text-white text-mystery-blood font-mono text-xs uppercase font-bold transition-all flex items-center justify-center gap-2">
+                            <span>Ver Página de la Sala</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 5. Escape College Gran Vía -->
+                <div class="room-item mystery-card rounded-xl overflow-hidden flex flex-col justify-between cursor-pointer group" data-category="terror" data-room-id="5">
+                    <div>
+                        <div class="relative h-48 overflow-hidden bg-mystery-dark">
+                            <img src="./img/images3.jpg" alt="Escape College" class="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/600x400/10141e/e63946?text=Escape+College'">
+                            <span class="absolute top-3 left-3 bg-mystery-blood text-white font-mono font-bold text-[10px] px-2.5 py-1 rounded uppercase">Terror / Multitemático</span>
+                            <span class="absolute bottom-3 right-3 bg-mystery-black/80 border border-mystery-blood/30 text-mystery-blood text-xs font-mono px-2 py-0.5 rounded">
+                                <i class="fa-solid fa-location-dot mr-1"></i> San Bernardo
+                            </span>
+                        </div>
+                        <div class="p-5 space-y-3">
+                            <h3 class="text-lg font-bold font-cinzel text-white group-hover:text-mystery-blood transition-colors">5. Escape College</h3>
+                            <p class="text-xs text-gray-300 leading-relaxed">
+                                Situado en pleno centro de Gran Vía. Múltiples salas que abarcan desde orfanatos abandonados hasta robos al Vaticano.
+                            </p>
+                            <div class="flex flex-wrap gap-2 text-[11px] font-mono text-gray-400 pt-1">
+                                <span><i class="fa-solid fa-users text-mystery-blood mr-1"></i> 2-8 pax</span>
+                                <span><i class="fa-solid fa-clock text-mystery-blood mr-1"></i> 60 min</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-5 pt-0">
+                        <button class="w-full py-2.5 rounded bg-mystery-dark border border-mystery-blood/40 group-hover:bg-mystery-blood group-hover:text-white text-mystery-blood font-mono text-xs uppercase font-bold transition-all flex items-center justify-center gap-2">
+                            <span>Ver Página de la Sala</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 6. Ncerrados Escape Room -->
+                <div class="room-item mystery-card rounded-xl overflow-hidden flex flex-col justify-between cursor-pointer group" data-category="misterio" data-room-id="6">
+                    <div>
+                        <div class="relative h-48 overflow-hidden bg-mystery-dark">
+                            <img src="./img/images2.jpg" alt="Ncerrados Escape Room" class="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/600x400/10141e/d4af37?text=Ncerrados'">
+                            <span class="absolute top-3 left-3 bg-mystery-gold text-black font-mono font-bold text-[10px] px-2.5 py-1 rounded uppercase">Cooperación Máxima</span>
+                            <span class="absolute bottom-3 right-3 bg-mystery-black/80 border border-mystery-gold/30 text-mystery-gold text-xs font-mono px-2 py-0.5 rounded">
+                                <i class="fa-solid fa-location-dot mr-1"></i> San Blas
+                            </span>
+                        </div>
+                        <div class="p-5 space-y-3">
+                            <h3 class="text-lg font-bold font-cinzel text-white group-hover:text-mystery-gold transition-colors">6. Ncerrados Escape</h3>
+                            <p class="text-xs text-gray-300 leading-relaxed">
+                                Diseño detallista centrado en enigmas interconectados. Requiere una coordinación perfecta y comunicación constante.
+                            </p>
+                            <div class="flex flex-wrap gap-2 text-[11px] font-mono text-gray-400 pt-1">
+                                <span><i class="fa-solid fa-users text-mystery-gold mr-1"></i> 2-6 pax</span>
+                                <span><i class="fa-solid fa-clock text-mystery-gold mr-1"></i> 75 min</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-5 pt-0">
+                        <button class="w-full py-2.5 rounded bg-mystery-dark border border-mystery-gold/40 group-hover:bg-mystery-gold group-hover:text-black text-mystery-gold font-mono text-xs uppercase font-bold transition-all flex items-center justify-center gap-2">
+                            <span>Ver Página de la Sala</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 7. Bombastik! Experiencia Inmersiva -->
+                <div class="room-item mystery-card rounded-xl overflow-hidden flex flex-col justify-between cursor-pointer group" data-category="scifi" data-room-id="7">
+                    <div>
+                        <div class="relative h-48 overflow-hidden bg-mystery-dark">
+                            <img src="./img/images5.jpg" alt="Bombastik!" class="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/600x400/10141e/00f3ff?text=Bombastik!'">
+                            <span class="absolute top-3 left-3 bg-mystery-cyan text-black font-mono font-bold text-[10px] px-2.5 py-1 rounded uppercase">Cyberpunk & Luces</span>
+                            <span class="absolute bottom-3 right-3 bg-mystery-black/80 border border-mystery-cyan/30 text-mystery-cyan text-xs font-mono px-2 py-0.5 rounded">
+                                <i class="fa-solid fa-location-dot mr-1"></i> Carabanchel
+                            </span>
+                        </div>
+                        <div class="p-5 space-y-3">
+                            <h3 class="text-lg font-bold font-cinzel text-white group-hover:text-mystery-cyan transition-colors">7. Bombastik! Madrid</h3>
+                            <p class="text-xs text-gray-300 leading-relaxed">
+                                Un arcade humano del futuro. Luces neón, pruebas físicas de agilidad y desafíos de bombas de tiempo interactivas.
+                            </p>
+                            <div class="flex flex-wrap gap-2 text-[11px] font-mono text-gray-400 pt-1">
+                                <span><i class="fa-solid fa-users text-mystery-cyan mr-1"></i> 2-8 pax</span>
+                                <span><i class="fa-solid fa-clock text-mystery-cyan mr-1"></i> 60 min</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-5 pt-0">
+                        <button class="w-full py-2.5 rounded bg-mystery-dark border border-mystery-cyan/40 group-hover:bg-mystery-cyan group-hover:text-black text-mystery-cyan font-mono text-xs uppercase font-bold transition-all flex items-center justify-center gap-2">
+                            <span>Ver Página de la Sala</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 8. Virtual Zone / Incognito VR -->
+                <div class="room-item mystery-card rounded-xl overflow-hidden flex flex-col justify-between cursor-pointer group" data-category="scifi" data-room-id="8">
+                    <div>
+                        <div class="relative h-48 overflow-hidden bg-mystery-dark">
+                            <img src="https://images.unsplash.com/photo-1592478411213-6153e4ebc07d?auto=format&fit=crop&w=600&q=80" alt="Virtual Zone" class="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/600x400/10141e/00f3ff?text=Virtual+Zone'">
+                            <span class="absolute top-3 left-3 bg-mystery-cyan text-black font-mono font-bold text-[10px] px-2.5 py-1 rounded uppercase">Realidad Virtual 4K</span>
+                            <span class="absolute bottom-3 right-3 bg-mystery-black/80 border border-mystery-cyan/30 text-mystery-cyan text-xs font-mono px-2 py-0.5 rounded">
+                                <i class="fa-solid fa-location-dot mr-1"></i> Azca / Castellana
+                            </span>
+                        </div>
+                        <div class="p-5 space-y-3">
+                            <h3 class="text-lg font-bold font-cinzel text-white group-hover:text-mystery-cyan transition-colors">8. Virtual Zone / Incognito</h3>
+                            <p class="text-xs text-gray-300 leading-relaxed">
+                                Sin cables ni ataduras. Desplazamiento libre por arenas de más de 200m² con trajes hápticos y gráficos hyper-realistas.
+                            </p>
+                            <div class="flex flex-wrap gap-2 text-[11px] font-mono text-gray-400 pt-1">
+                                <span><i class="fa-solid fa-users text-mystery-cyan mr-1"></i> 2-8 pax</span>
+                                <span><i class="fa-solid fa-clock text-mystery-cyan mr-1"></i> 60 min</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-5 pt-0">
+                        <button class="w-full py-2.5 rounded bg-mystery-dark border border-mystery-cyan/40 group-hover:bg-mystery-cyan group-hover:text-black text-mystery-cyan font-mono text-xs uppercase font-bold transition-all flex items-center justify-center gap-2">
+                            <span>Ver Página de la Sala</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- SECCIÓN PÁGINA INDIVIDUAL DEDICADA DE SALA (NUEVO DYNAMIC VIEW) -->
+        <section id="sala-pagina-view" class="py-16 px-4 max-w-7xl mx-auto relative z-20 hidden">
+            <div class="mb-6">
+                <button id="back-to-catalog-btn" class="px-4 py-2 rounded-lg bg-mystery-dark border border-mystery-gold text-mystery-gold font-mono text-xs uppercase font-bold hover:bg-mystery-gold hover:text-black transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Volver al Catálogo de Salas</span>
+                </button>
+            </div>
+
+            <!-- Content Card Container for Dedicated Page -->
+            <div id="sala-pagina-content" class="mystery-card rounded-2xl p-6 md:p-10 border border-mystery-gold/40 space-y-8">
+                <!-- Rendered dynamically via JS when a room is clicked -->
+            </div>
+        </section>
+
+        <!-- SECCIÓN MOTOR DE RESERVAS Y CALENDARIO -->
+        <section id="reservas" class="py-16 px-4 bg-mystery-darker border-y border-mystery-gold/20 relative z-20">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-10">
+                    <span class="text-mystery-gold font-mono text-xs tracking-[0.3em] uppercase">Reserva oficial</span>
+                    <h2 class="text-3xl md:text-5xl font-cinzel font-bold text-white mt-3 mb-4">Tu próxima misión empieza aquí</h2>
+                    <p class="text-sm text-gray-300 max-w-2xl mx-auto">Elige una sala y continúa en la página oficial del establecimiento para consultar disponibilidad y completar tu reserva. El pago se realiza directamente con el proveedor.</p>
+                </div>
+                <div class="mystery-card p-6 md:p-9 rounded-2xl border border-mystery-gold/40 max-w-2xl mx-auto">
+                    <label for="booking-room-select" class="block text-xs font-mono uppercase text-mystery-gold tracking-wider mb-3">¿Qué sala quieres reservar?</label>
+                    <select id="booking-room-select" class="w-full bg-mystery-black border border-gray-700 focus:border-mystery-gold text-white p-4 rounded-lg font-montserrat text-sm focus:outline-none transition-colors">
+                        <option value="1">Clue Hunter Madrid</option>
+                        <option value="2">Coco Room Madrid</option>
+                        <option value="3">Academia de Magia by Experiencity</option>
+                        <option value="4">Fox in a Box Madrid</option>
+                        <option value="5">Escape College Gran Vía</option>
+                        <option value="6">Ncerrados Escape Room</option>
+                        <option value="7">Bombastik! Experiencia Inmersiva</option>
+                        <option value="8">Virtual Zone Madrid</option>
+                    </select>
+                    <button id="official-booking-btn" type="button" class="w-full mt-5 py-4 bg-gold-gradient hover:brightness-110 font-cinzel font-bold uppercase tracking-wider text-black rounded-lg shadow-[0_0_20px_rgba(212,175,55,0.3)] transition-all flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Reservar y pagar en la web oficial
+                    </button>
+                    <p class="text-[11px] text-gray-400 mt-4 leading-relaxed"><i class="fa-solid fa-circle-info text-mystery-gold mr-1"></i> Madrid Enigmas no procesa el pago ni confirma la reserva. La confirmación, disponibilidad, precios finales y condiciones dependen de cada establecimiento.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="mapa" class="py-16 px-4 max-w-7xl mx-auto relative z-20">
+            <div class="text-center space-y-3 mb-10">
+                <span class="text-mystery-gold font-mono text-xs tracking-widest uppercase">// Red de Locales Madrid</span>
+                <h2 class="text-3xl md:text-5xl font-black uppercase text-white font-cinzel">
+                    Ubicaciones en el <span class="text-mystery-gold">Mapa</span>
+                </h2>
+                <p class="text-sm text-gray-300 max-w-xl mx-auto">
+                    Todas nuestras salas asociadas se encuentran comunicadas con las principales líneas de Metro y Cercanías.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                
+                <!-- Interactive Venue Selector List -->
+                <div class="lg:col-span-1 space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                    <div class="venue-list-card p-3 rounded-lg mystery-card border border-mystery-gold/30 hover:border-mystery-gold cursor-pointer transition-all" data-map-url="https://www.google.com/maps/search/?api=1&query=Clue+Hunter+Madrid+-+Escape+Room&query_place_id=ChIJTXrLptUnQg0RG2UHmT24bIc" data-title="Clue Hunter Madrid">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-cinzel text-xs font-bold text-white"><a href="https://www.google.com/maps/search/?api=1&query=Clue+Hunter+Madrid+-+Escape+Room&query_place_id=ChIJTXrLptUnQg0RG2UHmT24bIc" target="_blank" rel="noopener noreferrer" class="hover:underline">Clue Hunter Madrid</a></h4>
+                            <span class="text-[10px] font-mono text-mystery-gold">Centro</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400 mt-1">Calle de Juanelo, 13 (Metro Tirso de Molina / Sol)</p>
+                    </div>
+
+                    <div class="venue-list-card p-3 rounded-lg mystery-card border border-gray-800 hover:border-mystery-gold cursor-pointer transition-all" data-map-url="https://www.google.com/maps/search/?api=1&query=Escape+Room+-+Coco+Room+Madrid&query_place_id=ChIJEWpaX80nQg0RKpA6BUK5fEA" data-title="Coco Room Madrid">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-cinzel text-xs font-bold text-white"><a href="https://www.google.com/maps/search/?api=1&query=Escape+Room+-+Coco+Room+Madrid&query_place_id=ChIJEWpaX80nQg0RKpA6BUK5fEA" target="_blank" rel="noopener noreferrer" class="hover:underline">Coco Room Madrid</a></h4>
+                            <span class="text-[10px] font-mono text-mystery-gold">Arganzuela</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400 mt-1">Calle de Moratines, 18 (Metro Acacias)</p>
+                    </div>
+
+                    <div class="venue-list-card p-3 rounded-lg mystery-card border border-gray-800 hover:border-mystery-gold cursor-pointer transition-all" data-map-url="https://www.google.com/maps/search/?api=1&query=Academia+de+Magia+Experiencity+Madrid" data-title="Academia de Magia Experiencity">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-cinzel text-xs font-bold text-white">Academia de Magia</h4>
+                            <span class="text-[10px] font-mono text-mystery-purple">Chamartín</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400 mt-1">Calle de los Mártires de la Ventilla, 72</p>
+                    </div>
+
+                    <div class="venue-list-card p-3 rounded-lg mystery-card border border-gray-800 hover:border-mystery-gold cursor-pointer transition-all" data-map-url="https://www.google.com/maps/search/?api=1&query=Fox+in+a+Box&query_place_id=ChIJU41NhnsoQg0RvFYhRrnlFRQ" data-title="Fox in a Box Madrid">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-cinzel text-xs font-bold text-white"><a href="https://www.google.com/maps/search/?api=1&query=Fox+in+a+Box&query_place_id=ChIJU41NhnsoQg0RvFYhRrnlFRQ" target="_blank" rel="noopener noreferrer" class="hover:underline">Fox in a Box Madrid</a></h4>
+                            <span class="text-[10px] font-mono text-mystery-blood">Delicias</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400 mt-1">Calle del Áncora, 12 (Metro Delicias)</p>
+                    </div>
+
+                    <div class="venue-list-card p-3 rounded-lg mystery-card border border-gray-800 hover:border-mystery-gold cursor-pointer transition-all" data-map-url="https://www.google.com/maps/search/?api=1&query=Escape+College+Gran+Via+Madrid" data-title="Escape College Gran Vía">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-cinzel text-xs font-bold text-white">Escape College Gran Vía</h4>
+                            <span class="text-[10px] font-mono text-mystery-blood">Gran Vía</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400 mt-1">Calle de San Bernardo, 5 (Metro Santo Domingo)</p>
+                    </div>
+
+                    <div class="venue-list-card p-3 rounded-lg mystery-card border border-gray-800 hover:border-mystery-gold cursor-pointer transition-all" data-map-url="https://www.google.com/maps/search/?api=1&query=Ncerrados+Escape+Room+Madrid" data-title="Ncerrados Escape Room">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-cinzel text-xs font-bold text-white">Ncerrados Escape Room</h4>
+                            <span class="text-[10px] font-mono text-mystery-gold">San Blas</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400 mt-1">Calle de San Romualdo, 26 (Metro Suanzes)</p>
+                    </div>
+                </div>
+
+                <!-- Simulated Radar Map Canvas -->
+                <div class="lg:col-span-2 mystery-card p-4 rounded-xl border border-mystery-gold/30 h-[420px] flex flex-col justify-between relative overflow-hidden bg-mystery-black">
+                    <div class="absolute inset-0 bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:20px_20px] opacity-15"></div>
+                    
+                    <div class="relative z-10 flex justify-between items-center bg-mystery-dark/90 p-3 rounded border border-gray-800">
+                        <span id="map-venue-title" class="text-xs font-cinzel font-bold text-mystery-gold">
+                            <i class="fa-solid fa-map-pin mr-1.5"></i> Selecciona un local de la lista
+                        </span>
+                        <span class="text-[10px] font-mono text-gray-500">MADRID GPS GRID</span>
+                    </div>
+
+                    <!-- Radar Map Simulation -->
+                    <div class="relative z-10 flex-1 flex items-center justify-center my-4">
+                        <div class="relative w-64 h-64 rounded-full border border-mystery-gold/20 flex items-center justify-center">
+                            <div class="w-44 h-44 rounded-full border border-mystery-gold/40 flex items-center justify-center">
+                                <div class="w-24 h-24 rounded-full bg-mystery-gold/10 border border-mystery-gold flex items-center justify-center">
+                                    <i id="map-radar-icon" class="fa-solid fa-building text-2xl text-mystery-gold animate-bounce"></i>
+                                </div>
+                            </div>
+                            <div class="absolute inset-0 rounded-full border-t-2 border-mystery-gold/80 animate-spin"></div>
+                        </div>
+                    </div>
+
+                    <div class="relative z-10 bg-mystery-dark/90 p-3 rounded border border-gray-800 text-center flex justify-between items-center px-4">
+                        <p id="map-venue-address" class="text-xs font-mono text-gray-300">
+                            Haz clic en los centros a la izquierda para ver datos de transporte y acceso.
+                        </p>
+                        <a id="map-external-link" href="#" target="_blank" rel="noopener noreferrer" class="hidden text-xs font-mono text-mystery-gold underline whitespace-nowrap ml-2">
+                            Ver en Google Maps <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TESTIMONIOS & RESEÑAS -->
+        <section class="py-16 px-4 max-w-7xl mx-auto relative z-20">
+            <div class="text-center space-y-3 mb-12">
+                <span class="text-mystery-gold font-mono text-xs tracking-widest uppercase">// Opiniones de Agentes</span>
+                <h2 class="text-3xl font-extrabold uppercase text-white font-cinzel">
+                    Experiencias de <span class="text-mystery-gold">Jugadores</span>
+                </h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <div class="mystery-card p-6 rounded-xl border border-mystery-gold/20 space-y-4">
+                    <div class="flex text-mystery-gold text-xs gap-1">
+                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                    </div>
+                    <p class="text-xs text-gray-300 italic leading-relaxed">
+                        "Jugamos en Clue Hunter y la ambientación de época fue de 10. La reserva a través del portal fue súper rápida y todo estaba coordinado a la perfección."
+                    </p>
+                    <div class="border-t border-gray-800 pt-3 flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-mystery-gold/20 border border-mystery-gold flex items-center justify-center text-mystery-gold text-xs font-bold">
+                            MC
+                        </div>
+                        <div>
+                            <span class="text-xs font-bold text-white block">Marcos C.</span>
+                            <span class="text-[10px] text-gray-500 font-mono">Clue Hunter Madrid</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mystery-card p-6 rounded-xl border border-mystery-gold/20 space-y-4">
+                    <div class="flex text-mystery-gold text-xs gap-1">
+                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                    </div>
+                    <p class="text-xs text-gray-300 italic leading-relaxed">
+                        "La sala del Búnker en Fox in a Box nos dejó sin aliento. Los efectos de tensión y las pistas físicas son de nivel profesional. ¡Repetiremos!"
+                    </p>
+                    <div class="border-t border-gray-800 pt-3 flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-mystery-blood/20 border border-mystery-blood flex items-center justify-center text-mystery-blood text-xs font-bold">
+                            LV
+                        </div>
+                        <div>
+                            <span class="text-xs font-bold text-white block">Laura V.</span>
+                            <span class="text-[10px] text-gray-500 font-mono">Fox in a Box</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mystery-card p-6 rounded-xl border border-mystery-gold/20 space-y-4">
+                    <div class="flex text-mystery-gold text-xs gap-1">
+                        <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                    </div>
+                    <p class="text-xs text-gray-300 italic leading-relaxed">
+                        "Virtual Zone supera cualquier expectativa. La libertad de movimiento y el feedback háptico hacen que sientas que de verdad estás en el futuro."
+                    </p>
+                    <div class="border-t border-gray-800 pt-3 flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-mystery-cyan/20 border border-mystery-cyan flex items-center justify-center text-mystery-cyan text-xs font-bold">
+                            DR
+                        </div>
+                        <div>
+                            <span class="text-xs font-bold text-white block">Daniel R.</span>
+                            <span class="text-[10px] text-gray-500 font-mono">Virtual Zone VR</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- SECCIÓN FAQ / PREGUNTAS FRECUENTES -->
+        <section id="faq" class="py-16 px-4 max-w-4xl mx-auto relative z-20">
+            <div class="text-center space-y-3 mb-10">
+                <span class="text-mystery-gold font-mono text-xs tracking-widest uppercase">// Resolviendo Dudas</span>
+                <h2 class="text-3xl font-extrabold uppercase text-white font-cinzel">
+                    Preguntas <span class="text-mystery-gold">Frecuentes</span>
+                </h2>
+            </div>
+
+            <div class="space-y-3">
+                <div class="faq-item mystery-card rounded-lg overflow-hidden border border-gray-800">
+                    <button class="faq-toggle w-full p-4 text-left font-cinzel text-xs md:text-sm font-bold text-white flex justify-between items-center hover:text-mystery-gold transition-colors">
+                        <span>¿Es necesario tener experiencia previa en escape rooms?</span>
+                        <i class="fa-solid fa-chevron-down text-mystery-gold text-xs transition-transform duration-300"></i>
+                    </button>
+                    <div class="faq-content hidden p-4 pt-0 text-xs text-gray-300 leading-relaxed border-t border-gray-800/50">
+                        No. En todas las salas los game masters os darán un briefing inicial con las reglas del juego. Además, si os quedáis atascados, podréis recibir pistas en tiempo real.
+                    </div>
+                </div>
+
+                <div class="faq-item mystery-card rounded-lg overflow-hidden border border-gray-800">
+                    <button class="faq-toggle w-full p-4 text-left font-cinzel text-xs md:text-sm font-bold text-white flex justify-between items-center hover:text-mystery-gold transition-colors">
+                        <span>¿Qué ocurre si somos más o menos jugadores el día de la sesión?</span>
+                        <i class="fa-solid fa-chevron-down text-mystery-gold text-xs transition-transform duration-300"></i>
+                    </button>
+                    <div class="faq-content hidden p-4 pt-0 text-xs text-gray-300 leading-relaxed border-t border-gray-800/50">
+                        Podéis ajustar el número de asistentes al llegar a la sala siempre que esté dentro del rango permitido por la experiencia (por ejemplo, entre 2 y 8 personas). La diferencia de precio se abonará o regularizará en recepción.
+                    </div>
+                </div>
+
+                <div class="faq-item mystery-card rounded-lg overflow-hidden border border-gray-800">
+                    <button class="faq-toggle w-full p-4 text-left font-cinzel text-xs md:text-sm font-bold text-white flex justify-between items-center hover:text-mystery-gold transition-colors">
+                        <span>¿Las salas de terror son aptas para personas sensibles?</span>
+                        <i class="fa-solid fa-chevron-down text-mystery-gold text-xs transition-transform duration-300"></i>
+                    </button>
+                    <div class="faq-content hidden p-4 pt-0 text-xs text-gray-300 leading-relaxed border-t border-gray-800/50">
+                        Salas como Fox in a Box o Escape College disponen de modos de tensión modulables. Al reservar podéis indicar si preferís una versión "misterio sin sustos" o la experiencia completa.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-gray-800 bg-mystery-black py-10 text-gray-500 font-mono text-xs relative z-20">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-key text-mystery-gold text-lg"></i>
+                <span class="font-cinzel font-bold text-white text-sm">MADRID ENIGMAS</span>
+                <span>© 2026 Red Oficial de Escapismo.</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ROOM DETAILS MODAL -->
+    <div id="room-details-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4">
+        <div class="mystery-card max-w-2xl w-full rounded-2xl border border-mystery-gold p-6 relative max-h-[90vh] overflow-y-auto">
+            <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div id="modal-details-content" class="space-y-4">
+                <!-- Injected dynamically via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT APP LOGIC -->
+    <script>
+        // Data Store for the 8 Madrid Escape Rooms
+        const madridRoomsData = {
+            '1': {
+                id: '1',
+                name: 'Clue Hunter Madrid',
+                address: 'Calle de Juanelo, 13 (Centro / Tirso de Molina)',
+                mapUrl: 'https://www.google.com/maps/search/?api=1&query=Clue+Hunter+Madrid+-+Escape+Room&query_place_id=ChIJTXrLptUnQg0RG2UHmT24bIc',
+                price: '22',
+                priceFormatted: '22€ / pax',
+                category: 'Misterio & Casos Detectivescos',
+                players: '2 a 6 Personas',
+                duration: '60 Minutos',
+                dificultad: 'Media - Alta',
+                description: 'Líder en escapismo tradicional en el centro de Madrid. Sumérgete en casos estilo Sherlock Holmes donde la lógica deductiva, candados de combinación antigua y la búsqueda de pistas en despachos victorianos son los protagonistas.',
+                longDescription: 'Clue Hunter Madrid se sitúa como una referencia clave dentro de la oferta de juegos de escape en la capital. Ambientado en salas victorianas con atrezzo real de época, te retará a resolver crímenes sin resolver, manuscritos codificados y enigmas mecánicos. Es la opción ideal para amantes del escapismo clásico, familias y empresas que buscan potenciar la lógica y el trabajo en equipo.',
+                highlights: ['Sin elementos de susto o terror', 'Ideal para familias y novatos', 'Acertijos mecánicos y deducción pura', 'Game Master personalizado durante la partida'],
+                image: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=1200&q=80'
+            },
+            '2': {
+                id: '2',
+                name: 'Coco Room Madrid',
+                address: 'Calle de Moratines, 18 (Arganzuela)',
+                mapUrl: 'https://www.google.com/maps/search/?api=1&query=Escape+Room+-+Coco+Room+Madrid&query_place_id=ChIJEWpaX80nQg0RKpA6BUK5fEA',
+                price: '24',
+                priceFormatted: '24€ / pax',
+                category: 'Enigmas Históricos y Robos',
+                players: '2 a 8 Personas',
+                duration: '66 Minutos',
+                dificultad: 'Alta',
+                description: 'Instalaciones de gran formato centradas en enigmas históricos de la época de la Ilustración y atracos de guante blanco. Altísima cooperación entre los participantes.',
+                longDescription: 'Ubicado en el céntrico distrito de Arganzuela, Coco Room destaca por la inmersión teatral de sus misiones. Deberéis infiltraros en museos y mansiones históricas, vulnerar sistemas de seguridad antiguos e interpretar documentos ocultos para escapar con éxito en menos de 66 minutos.',
+                highlights: ['Múltiples salas conectadas', 'Diseño narrativo envolvente', 'Adaptado a grupos grandes', 'Ambientación sonora cinematográfica'],
+                image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80'
+            },
+            '3': {
+                id: '3',
+                name: 'Academia de Magia by Experiencity',
+                address: 'Calle Mártires de la Ventilla, 72 (Chamartín)',
+                mapUrl: 'https://www.google.com/maps/search/?api=1&query=Academia+de+Magia+Experiencity+Madrid',
+                price: '25',
+                priceFormatted: '25€ / pax',
+                category: 'Fantasía, Magia e Ilusionismo',
+                players: '2 a 7 Personas',
+                duration: '75 Minutos',
+                dificultad: 'Media',
+                description: 'Adéntrate en una escuela de brujería repleta de varitas mágicas reactivas, libros parlantes, calderos de pociones y secretos ocultos tras pasadizos de piedra.',
+                longDescription: 'Diseñado por Experiencity, este centro transforma la experiencia de escape room en un mundo mágico donde interactúas mediante varitas electrónicas y combinaciones de conjuros. Descubre animales fantásticos, desbloquea grimorios prohibidos y salva a la escuela de las artes oscuras.',
+                highlights: ['Efectos especiales y varitas mágicas', 'Especial para fans del universo fantástico', 'Decorados artesanales de alta calidad', 'Duración extendida de 75 minutos'],
+                image: 'https://images.unsplash.com/photo-1514539079130-25950c84af65?auto=format&fit=crop&w=1200&q=80'
+            },
+            '4': {
+                id: '4',
+                name: 'Fox in a Box Madrid',
+                address: 'Calle del Áncora, 12 (Delicias)',
+                mapUrl: 'https://www.google.com/maps/search/?api=1&query=Fox+in+a+Box&query_place_id=ChIJU41NhnsoQg0RvFYhRrnlFRQ',
+                price: '26',
+                priceFormatted: '26€ / pax',
+                category: 'Tensión, Hiperrealismo & Adrenalina',
+                players: '2 a 6 Personas',
+                duration: '60 Minutos',
+                dificultad: 'Muy Alta',
+                description: 'Franquicia internacional consagrada por su calidad de decoración hiperrealista. Elige entre desactivar un búnker militar, escapar de una celda de máxima seguridad o resolver los crímenes del Asesino del Zodiaco.',
+                longDescription: 'Fox in a Box ofrece escenarios fotorrealistas de categoría cinematográfica. Siente la verdadera tensión de una prisión militar de máxima seguridad o la adrenalina de una sala de control nuclear en plena Guerra Fría. Los actores y la iluminación inmersiva mantendrán tus pulsaciones al máximo.',
+                highlights: ['Ambientación fotorrealista de película', 'Game Masters caracterizados e interactivos', 'Secuencias de cuenta atrás con alta tensión', 'Certificado internacional de excelencia'],
+                image: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=1200&q=80'
+            },
+            '5': {
+                id: '5',
+                name: 'Escape College Gran Vía',
+                address: 'Calle de San Bernardo, 5 (Gran Vía / Santo Domingo)',
+                mapUrl: 'https://www.google.com/maps/search/?api=1&query=Escape+College+Gran+Via+Madrid',
+                price: '23',
+                priceFormatted: '23€ / pax',
+                category: 'Terror, Tensión y Misterio',
+                players: '2 a 8 Personas',
+                duration: '60 Minutos',
+                dificultad: 'Media - Alta',
+                description: 'Ubicado en pleno corazón de Madrid. Ofrece multitud de salas temáticas que abarcan desde orfanatos encantados e investigaciones del Vaticano hasta robos a bancos de alta seguridad.',
+                longDescription: 'Situado a escasos metros de Gran Vía, Escape College es uno de los complejos más versátiles de Madrid. Dispone de múltiples temáticas adaptables tanto para amantes del terror psicológico con actores como para grupos que prefieren misterio sin sustos.',
+                highlights: ['Ubicación inmejorable en Gran Vía', 'Catálogo de salas variadas', 'Sustos y nivel de terror opcional', 'Ideal para celebraciones y cumpleaños'],
+                image: 'https://images.unsplash.com/photo-1509281373149-e957c6296406?auto=format&fit=crop&w=1200&q=80'
+            },
+            '6': {
+                id: '6',
+                name: 'Ncerrados Escape Room',
+                address: 'Calle de San Romualdo, 26 (San Blas)',
+                mapUrl: 'https://www.google.com/maps/search/?api=1&query=Ncerrados+Escape+Room+Madrid',
+                price: '22',
+                priceFormatted: '22€ / pax',
+                category: 'Investigación & Cooperación Máxima',
+                players: '2 a 6 Personas',
+                duration: '75 Minutos',
+                dificultad: 'Alta',
+                description: 'Un templo para los apasionados del escapismo detallista. Los acertijos están profundamente entrelazados y requieren que el equipo se comunique activamente en todo momento.',
+                longDescription: 'Ncerrados está diseñado por y para verdaderos entusiastas de los retos mentales. Cada objeto en la sala tiene un propósito en la narrativa. Sus dinámicas no lineales exigen división del trabajo y análisis minucioso.',
+                highlights: ['Puzles originales y no lineales', 'Guión sumamente elaborado', 'Atención personalizada por el creador', 'Alta satisfacción de la comunidad escapista'],
+                image: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1200&q=80'
+            },
+            '7': {
+                id: '7',
+                name: 'Bombastik! Experiencia Inmersiva',
+                address: 'Zona Carabanchel / Vista Alegre',
+                mapUrl: 'https://www.google.com/maps/search/?api=1&query=Bombastik+Madrid',
+                price: '27',
+                priceFormatted: '27€ / pax',
+                category: 'Cyberpunk & Desafíos Neón',
+                players: '2 a 8 Personas',
+                duration: '60 Minutos',
+                dificultad: 'Media',
+                description: 'Una fusión entre escape room futurista y arcade de agilidad. Equipados con trajes de colores neón, competiréis superando minijuegos de bomb-defusal y patrones de láseres.',
+                longDescription: 'Bombastik! reimagina el concepto de sala de escape tradicionales sustituyendo los candados clásicos por circuitos electrónicos, paneles táctiles de neón y bombas de tiempo digitales que deberéis desactivar en equipo.',
+                highlights: ['Luces LED y marcadores electrónicos', 'Misión activa de movimiento', 'Diversión garantizada para amigos', 'Puntajes y ránkings en tiempo real'],
+                image: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=1200&q=80'
+            },
+            '8': {
+                id: '8',
+                name: 'Virtual Zone / Incognito VR',
+                address: 'Plaza de Carlos Trías Berttrán, 4 (Azca / Castellana)',
+                mapUrl: 'https://www.google.com/maps/search/?api=1&query=Virtual+Zone+Madrid',
+                price: '28',
+                priceFormatted: '28€ / pax',
+                category: 'Realidad Virtual Háptica Sci-Fi',
+                players: '2 a 8 Personas',
+                duration: '60 Minutos',
+                dificultad: 'Alta',
+                description: 'La experiencia de realidad virtual más avanzada de Madrid. Muévete libremente por un espacio de más de 200m² sin cables y siente el impacto y la textura del mundo virtual con chalecos de vibración háptica.',
+                longDescription: 'La cúspide de la tecnología inmersiva. En Virtual Zone te equiparás con visores de resolución 4K y tecnología Free-Roaming sin mochilas pesadas ni cables. Camina junto a tus compañeros por entornos de ciencia ficción, ruinas espaciales y mundos cibernéticos sintiendo cada interacción.',
+                highlights: ['Libertad de movimiento Free-Roaming (200m²)', 'Visores 4K de última generación', 'Chalecos hápticos con feedback táctil', 'Multijugador cooperativo en tiempo real'],
+                image: 'https://images.unsplash.com/photo-1592478411213-6153e4ebc07d?auto=format&fit=crop&w=1200&q=80'
+            }
+        };
+
+        // THREE.JS FOG & FLOATING DUST CANVAS
+        window.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('bg-fog-canvas');
+            if (!canvas) return;
+            const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+            camera.position.z = 400;
+
+            // Dust / Fog Particles
+            const count = 350;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+
+            for (let i = 0; i < count * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 1000;
+                positions[i + 1] = (Math.random() - 0.5) * 1000;
+                positions[i + 2] = (Math.random() - 0.5) * 800;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            const material = new THREE.PointsMaterial({
+                color: 0xd4af37,
+                size: 2.5,
+                transparent: true,
+                opacity: 0.4
+            });
+
+            const particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+
+            function render() {
+                requestAnimationFrame(render);
+                particles.rotation.y += 0.0004;
+                particles.rotation.x += 0.0002;
+                renderer.render(scene, camera);
+            }
+            render();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        });
+
+        // AUDIO AMBIENTAL: se reproduce solo cuando el visitante pulsa el botón
+        const audio = document.getElementById('audio-ambiente');
+        const audioBtn = document.getElementById('audio-toggle-btn');
+        const audioIcon = document.getElementById('audio-icon');
+        const audioLabel = document.getElementById('audio-label');
+
+        audio.volume = 0.3;
+
+        audioBtn.addEventListener('click', async () => {
+            if (audio.paused) {
+                try {
+                    await audio.play();
+                    audioIcon.className = "fa-solid fa-volume-high animate-pulse";
+                    audioLabel.textContent = "Audio Activo";
+                    audioBtn.setAttribute('aria-pressed', 'true');
+                } catch (error) {
+                    console.error('No se pudo reproducir el audio. Comprueba que existe ./audio/ambiente-misterioso.mp3', error);
+                    audioIcon.className = "fa-solid fa-volume-xmark";
+                    audioLabel.textContent = "Audio no disponible";
+                    audioBtn.setAttribute('aria-pressed', 'false');
+                }
+            } else {
+                audio.pause();
+                audio.currentTime = 0;
+                audioIcon.className = "fa-solid fa-volume-xmark";
+                audioLabel.textContent = "Audio Suspenso";
+                audioBtn.setAttribute('aria-pressed', 'false');
+            }
+        });
+
+        // INTERACTIVE LOCK PUZZLE LOGIC
+        const dialValues = [0, 0, 0];
+        const targetValues = [1, 8, 4];
+        const feedbackEl = document.getElementById('puzzle-feedback');
+
+        function updateDialDisplay(dialIndex) {
+            const dialEl = document.getElementById(`dial-${dialIndex + 1}`);
+            dialEl.textContent = dialValues[dialIndex];
+            dialEl.style.transform = `rotate(${dialValues[dialIndex] * 36}deg)`;
+            checkPuzzleSolution();
+        }
+
+        function checkPuzzleSolution() {
+            if (dialValues[0] === targetValues[0] && dialValues[1] === targetValues[1] && dialValues[2] === targetValues[2]) {
+                feedbackEl.className = "text-center font-mono text-xs px-4 py-2 rounded-lg bg-emerald-950/80 border border-emerald-500 text-emerald-400 max-w-md w-full animate-bounce";
+                feedbackEl.innerHTML = `<i class="fa-solid fa-lock-open mr-2"></i> ¡CÓDIGO CORRECTO! Pista desbloqueada: "Usa el cupón ENIGMA10 para un 10% adicional".`;
+            } else {
+                feedbackEl.className = "text-center font-mono text-xs px-4 py-2 rounded-lg bg-mystery-dark/80 border border-gray-800 text-gray-400 max-w-md w-full";
+                feedbackEl.innerHTML = `<i class="fa-solid fa-lock text-mystery-gold mr-2"></i> Cerradura Bloqueada. Alinea la combinación correcta (1 - 8 - 4).`;
+            }
+        }
+
+        [0, 1, 2].forEach(index => {
+            document.getElementById(`dial-${index + 1}-up`).addEventListener('click', () => {
+                dialValues[index] = (dialValues[index] + 1) % 10;
+                updateDialDisplay(index);
+            });
+            document.getElementById(`dial-${index + 1}-down`).addEventListener('click', () => {
+                dialValues[index] = (dialValues[index] - 1 + 10) % 10;
+                updateDialDisplay(index);
+            });
+        });
+
+        // ROOM SELECTION: NAVIGATE TO DEDICATED ROOM PAGE
+        const catalogSection = document.getElementById('salas');
+        const roomPageSection = document.getElementById('sala-pagina-view');
+        const roomPageContent = document.getElementById('sala-pagina-content');
+        const backToCatalogBtn = document.getElementById('back-to-catalog-btn');
+
+        function openRoomPage(roomId) {
+            const data = madridRoomsData[roomId];
+            if (!data) return;
+
+            // Build dedicated page view HTML
+            roomPageContent.innerHTML = `
+                <div class="relative h-64 md:h-96 rounded-xl overflow-hidden border border-mystery-gold/30">
+                    <img src="${data.image}" alt="${data.name}" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-mystery-black via-mystery-black/40 to-transparent"></div>
+                    <div class="absolute bottom-6 left-6 right-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                        <div>
+                            <span class="px-3 py-1 rounded bg-mystery-gold text-black font-mono font-bold text-xs uppercase mb-2 inline-block">${data.category}</span>
+                            <h1 class="text-2xl md:text-5xl font-cinzel font-bold text-white glow-gold">${data.name}</h1>
+                            <p class="text-xs md:text-sm font-mono text-gray-300 mt-1">
+                                <i class="fa-solid fa-map-pin text-mystery-gold mr-1"></i> ${data.address}
+                                ${data.mapUrl ? `<a href="${data.mapUrl}" target="_blank" rel="noopener noreferrer" class="ml-2 text-mystery-gold underline text-xs"><i class="fa-solid fa-location-arrow mr-1"></i>Ver en Mapa</a>` : ''}
+                            </p>
+                        </div>
+                        <div class="bg-mystery-dark/90 p-3 rounded-lg border border-mystery-gold/40 text-right">
+                            <span class="text-[10px] font-mono text-gray-400 block uppercase">Precio Entrada</span>
+                            <span class="text-2xl font-cinzel font-bold text-mystery-gold">${data.priceFormatted}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 font-mono text-xs">
+                    <div class="p-3 bg-mystery-dark rounded-lg border border-gray-800">
+                        <span class="text-gray-500 block uppercase text-[10px]">Jugadores</span>
+                        <span class="text-white font-bold text-sm"><i class="fa-solid fa-users text-mystery-gold mr-1"></i> ${data.players}</span>
+                    </div>
+                    <div class="p-3 bg-mystery-dark rounded-lg border border-gray-800">
+                        <span class="text-gray-500 block uppercase text-[10px]">Duración</span>
+                        <span class="text-white font-bold text-sm"><i class="fa-solid fa-clock text-mystery-gold mr-1"></i> ${data.duration}</span>
+                    </div>
+                    <div class="p-3 bg-mystery-dark rounded-lg border border-gray-800">
+                        <span class="text-gray-500 block uppercase text-[10px]">Dificultad</span>
+                        <span class="text-white font-bold text-sm"><i class="fa-solid fa-brain text-mystery-gold mr-1"></i> ${data.dificultad}</span>
+                    </div>
+                    <div class="p-3 bg-mystery-dark rounded-lg border border-gray-800">
+                        <span class="text-gray-500 block uppercase text-[10px]">Ubicación</span>
+                        <span class="text-white font-bold text-sm"><i class="fa-solid fa-compass text-mystery-gold mr-1"></i> Madrid</span>
+                    </div>
+                </div>
+
+                <!-- Detailed Content -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4">
+                    <div class="lg:col-span-2 space-y-6">
+                        <div>
+                            <h3 class="text-xl font-cinzel font-bold text-white mb-3 text-mystery-gold">Sinopsis & Experiencia</h3>
+                            <p class="text-sm text-gray-300 leading-relaxed font-montserrat">${data.longDescription}</p>
+                        </div>
+
+                        <div class="border-t border-gray-800 pt-6">
+                            <h3 class="text-lg font-cinzel font-bold text-white mb-3">Características Destacadas</h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                ${data.highlights.map(h => `
+                                    <div class="flex items-center gap-2 text-xs font-mono text-gray-300 bg-mystery-dark p-3 rounded border border-gray-800">
+                                        <i class="fa-solid fa-circle-check text-mystery-gold"></i>
+                                        <span>${h}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Direct Action Sidebar Card -->
+                    <div class="mystery-card p-6 rounded-xl border border-mystery-gold/40 space-y-4 text-center">
+                        <i class="fa-solid fa-ticket text-3xl text-mystery-gold"></i>
+                        <h4 class="text-lg font-cinzel font-bold text-white">¿Listo para la misión?</h4>
+                        <p class="text-xs text-gray-300">Continúa en la web oficial de esta sala para consultar disponibilidad y reservar.</p>
+                        
+                        <button id="direct-book-btn" class="w-full py-3.5 bg-gold-gradient text-black font-cinzel font-bold uppercase rounded text-xs shadow-[0_0_15px_rgba(212,175,55,0.4)] hover:brightness-110 transition-all">
+                            Reservar en ${data.name}
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // Display page view and scroll smooth
+            roomPageSection.classList.remove('hidden');
+            roomPageSection.scrollIntoView({ behavior: 'smooth' });
+
+            // Lleva la sala seleccionada al selector de reservas externas.
+            document.getElementById('direct-book-btn').addEventListener('click', () => {
+                const roomSelect = document.getElementById('booking-room-select');
+                roomSelect.value = String(data.id);
+                document.getElementById('reservas').scrollIntoView({ behavior: 'smooth' });
+            });
+        }
+
+        // Attach click listener to all room cards
+        document.querySelectorAll('.room-item').forEach(card => {
+            card.addEventListener('click', () => {
+                const roomId = card.getAttribute('data-room-id');
+                openRoomPage(roomId);
+            });
+        });
+
+        // Back to catalog listener
+        backToCatalogBtn.addEventListener('click', () => {
+            roomPageSection.classList.add('hidden');
+            catalogSection.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // ROOMS FILTERING
+        const filterBtns = document.querySelectorAll('.room-filter-btn');
+        const roomItems = document.querySelectorAll('.room-item');
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => {
+                    b.classList.remove('active', 'border-mystery-gold', 'bg-mystery-gold/20', 'text-mystery-gold');
+                    b.classList.add('border-gray-800', 'bg-mystery-dark', 'text-gray-400');
+                });
+                btn.classList.add('active', 'border-mystery-gold', 'bg-mystery-gold/20', 'text-mystery-gold');
+
+                const filter = btn.getAttribute('data-filter');
+                roomItems.forEach(item => {
+                    if (filter === 'all' || item.getAttribute('data-category') === filter) {
+                        item.style.display = 'flex';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // RESERVAS EXTERNAS: cada sala dirige al usuario a su web oficial.
+        // Los pagos y la confirmación se realizan exclusivamente en la web de cada proveedor.
+        const officialBookingUrls = {
+            '1': 'https://cluehunter.es/escape-room-en-madrid/',
+            '2': 'https://cocoroom.es/madrid/',
+            '3': 'https://experiencity.es/',
+            '4': 'https://madrid.roomescapemadrid.es/en/reservation/multiple',
+            '5': 'https://escapecollegemadrid.com/en/reservations/',
+            '6': 'https://www.ncerradosescaperoom.es/reservas/',
+            '7': 'https://madrid.bombastik.games/reserva/',
+            '8': 'https://virtualzonevr.com/centros/madrid'
+        };
+
+        const bookingSelect = document.getElementById('booking-room-select');
+        document.getElementById('official-booking-btn').addEventListener('click', () => {
+            const destination = officialBookingUrls[bookingSelect.value];
+            if (!destination) {
+                alert('No se ha configurado todavía el enlace oficial de reservas para esta sala.');
+                return;
+            }
+            window.open(destination, '_blank', 'noopener,noreferrer');
+        });
+
+        // FAQ ACCORDION LOGIC
+        document.querySelectorAll('.faq-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const content = btn.nextElementSibling;
+                const icon = btn.querySelector('i');
+                content.classList.toggle('hidden');
+                icon.classList.toggle('rotate-180');
+            });
+        });
+
+        // VENUE INTERACTIVE MAP LISTENER
+        document.querySelectorAll('.venue-list-card').forEach(card => {
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.venue-list-card').forEach(c => {
+                    c.classList.remove('border-mystery-gold');
+                    c.classList.add('border-gray-800');
+                });
+                card.classList.remove('border-gray-800');
+                card.classList.add('border-mystery-gold');
+
+                const title = card.getAttribute('data-title');
+                const addr = card.querySelector('p').textContent;
+                const mapUrl = card.getAttribute('data-map-url');
+
+                document.getElementById('map-venue-title').innerHTML = `<i class="fa-solid fa-map-pin mr-1.5"></i> ${title}`;
+                document.getElementById('map-venue-address').textContent = addr;
+
+                const extLink = document.getElementById('map-external-link');
+                if (mapUrl) {
+                    extLink.href = mapUrl;
+                    extLink.classList.remove('hidden');
+                } else {
+                    extLink.classList.add('hidden');
+                }
+            });
+        });
+
+        // MOBILE MENU TOGGLE
+        const mobileBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+        document.querySelectorAll('.mobile-link').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+            });
+        });
+
+        // La reserva se completa en la web oficial del establecimiento elegido.
+    </script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</body>
+</html>
